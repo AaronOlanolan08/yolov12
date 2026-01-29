@@ -1453,14 +1453,9 @@ class AdaptiveFeatureFusion(nn.Module):
 
     def forward(self, x):
         s, d = x
-        # Align denoising branch channels to standard branch if needed
+        # Always recreate align_conv if channels mismatch (robust to wrapper types)
         if s.shape[1] != d.shape[1]:
-            if (
-                not hasattr(self, 'align_conv') or self.align_conv is None
-                or self.align_conv.in_channels != d.shape[1]
-                or self.align_conv.out_channels != s.shape[1]
-            ):
-                self.align_conv = Conv(d.shape[1], s.shape[1], k=1, s=1, p=0, act=False).to(d.device)
+            self.align_conv = Conv(d.shape[1], s.shape[1], k=1, s=1, p=0, act=False).to(d.device, d.dtype)
             d = self.align_conv(d)
         fused = self.weight_standard * s + self.weight_denoising * d
         fused = self.conv_align(fused)  # guarantees correct channel alignment
