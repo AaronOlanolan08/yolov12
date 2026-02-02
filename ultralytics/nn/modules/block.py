@@ -1374,7 +1374,7 @@ class A2C2f(nn.Module):
 
 
 class StandardBranch(nn.Module):
-    def __init__(self, c1, c2, c3=None):
+    def __init__(self, c1, c2, k, s):
         """
         Standard branch replicating original YOLOv12 first two Conv layers with downsampling.
         Args:
@@ -1383,11 +1383,10 @@ class StandardBranch(nn.Module):
             c3: output channels (e.g., 128) - matches original Conv layer 1
         """
         super().__init__()
-        c3 = c3 or c2
-        # Replicate original: Conv [64, 128, 3, 2] -> P1/2
-        self.conv1 = Conv(c1, c2, 3, 2)
-        # Replicate original: Conv [128, 3, 2, 1, 2] -> P2/4
-        self.conv2 = Conv(c2, c3, 3, 2, 1, 2)
+
+        self.conv1 = Conv(c1, c2, k, s)
+
+        self.conv2 = Conv(c2, 128, 3, 2, 1, 2)
 
     def forward(self, x):
         return self.conv2(self.conv1(x))
@@ -1395,7 +1394,7 @@ class StandardBranch(nn.Module):
 
 
 class DenoisingBranch(nn.Module):
-    def __init__(self, c1, c2=None, n=1, shortcut=False, g=1, e=0.5):
+    def __init__(self, c1, c2, n=1, shortcut=False, g=1, e=0.5):
         """
         Denoising branch with depthwise separable convolutions and downsampling.
         Args:
@@ -1404,26 +1403,22 @@ class DenoisingBranch(nn.Module):
             e: expansion ratio (default 0.5)
         """
         super().__init__()
-        c2 = c2 or c1
         self.c = int(c2 * e)
-        
-        # First conv with stride=2 for downsampling to P1/2
-        self.cv1 = Conv(c1, self.c, 3, 2, 1)
-        
+      
         # First DW-PW block with stride=2 for additional downsampling to P2/4
         # DWConv already has: Conv2d → BatchNorm2d → SiLU activation
-        self.dw_conv1 = DWConv(self.c, self.c, k=3, s=2)
-        self.pw_conv1 = Conv(self.c, self.c, 1, 1)
+        self.dw_conv1 = DWConv(c1, self.c, k=3, s=2)
+        self.pw_conv1 = Conv(c1, self.c, 1, 1)
         
         # Second DW-PW block with stride=1
-        self.dw_conv2 = DWConv(self.c, self.c, k=3, s=1)
-        self.pw_conv2 = Conv(self.c, self.c, 1, 1)
+        self.dw_conv2 = DWConv(self.c, 128, k=3, s=2)
+        self.pw_conv2 = Conv(self.c, 128, 1, 1)
         
         # No bottleneck layers for minimal convs
         self.m = nn.ModuleList()
         
         # Final projection to output channels
-        self.cv2 = Conv(self.c, c2, 1)
+        self.cv2 = Conv(self.c, 128, 1)
 
     def forward(self, x):
         """Forward pass through denoising branch with downsampling (input → P1/2 → P2/4)."""
