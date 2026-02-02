@@ -1422,8 +1422,6 @@ class DenoisingBranch(nn.Module):
 
     def forward(self, x):
         """Forward pass through denoising branch with downsampling (input → P1/2 → P2/4)."""
-        # Initial conv with downsampling to P1/2
-        x = self.cv1(x)  # 3 → 2*c channels, stride=2
         
         # First DW-PW block: downsamples to P2/4
         # Note: DWConv already applies BatchNorm and activation internally
