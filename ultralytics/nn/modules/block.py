@@ -1408,17 +1408,17 @@ class DenoisingBranch(nn.Module):
         # First DW-PW block with stride=2 for additional downsampling to P2/4
         # DWConv already has: Conv2d → BatchNorm2d → SiLU activation
         self.dw_conv1 = DWConv(c1, self.c, k=3, s=2)
-        self.pw_conv1 = Conv(c1, self.c, 1, 1)
+        self.pw_conv1 = Conv(self.c, self.c, 1, 1)
         
         # Second DW-PW block with stride=1
         self.dw_conv2 = DWConv(self.c, 128, k=3, s=2)
-        self.pw_conv2 = Conv(self.c, 128, 1, 1)
+        self.pw_conv2 = Conv(128, 128, 1, 1)
         
         # No bottleneck layers for minimal convs
         self.m = nn.ModuleList()
         
         # Final projection to output channels
-        self.cv2 = Conv(self.c, 128, 1)
+        self.cv2 = Conv(128, 128, 1)
 
     def forward(self, x):
         """Forward pass through denoising branch with downsampling (input → P1/2 → P2/4)."""
