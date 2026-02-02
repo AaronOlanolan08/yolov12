@@ -1374,19 +1374,13 @@ class A2C2f(nn.Module):
 
 
 class StandardBranch(nn.Module):
-    def __init__(self, c1, c2, k, s):
-        """
-        Standard branch replicating original YOLOv12 first two Conv layers with downsampling.
-        Args:
-            c1: input channels (e.g., 3 for RGB)
-            c2: intermediate channels (e.g., 64) - matches original Conv layer 0
-            c3: output channels (e.g., 128) - matches original Conv layer 1
-        """
+    def __init__(self, c1, c2, c3, k, s):
         super().__init__()
 
         self.conv1 = Conv(c1, c2, k, s)
+        self.conv2 = Conv(c2, c3, 3, 2)
 
-        self.conv2 = Conv(c2, 128, 3, 2, 1, 2)
+        self.c2 = c3 
 
     def forward(self, x):
         return self.conv2(self.conv1(x))
@@ -1404,6 +1398,7 @@ class DenoisingBranch(nn.Module):
         """
         super().__init__()
         self.c = int(c2 * e)
+        self.c2 = c2
 
         self.dw_conv1 = DWConv(c1, self.c, k=3, s=2)
         self.pw_conv1 = Conv(self.c, self.c, 1, 1)
