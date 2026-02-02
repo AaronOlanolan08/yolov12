@@ -1406,10 +1406,10 @@ class DenoisingBranch(nn.Module):
         self.c = int(c2 * e)
         self.c2 = c2
 
-        self.dw_conv1 = DWConv(c1, self.c, k=3, s=2)
+        self.dw_conv1 = DWConv(c1, self.c, k=3, s=1)
         self.pw_conv1 = Conv(self.c, self.c, 1, 1)
 
-        self.dw_conv2 = DWConv(self.c, c2, k=3, s=2)
+        self.dw_conv2 = DWConv(self.c, c2, k=3, s=1)
         self.pw_conv2 = Conv(c2, c2, 1, 1)
         
         # No bottleneck layers for minimal convs
