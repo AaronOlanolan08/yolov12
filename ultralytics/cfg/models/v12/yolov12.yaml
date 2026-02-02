@@ -17,7 +17,7 @@ scales: # model compound scaling constants, i.e. 'model=yolov12n.yaml' will call
 backbone:
   # [from, repeats, module, args]
   - [-1, 1, StandardBranch, [64, 128, 3, 2]]
-  - [-1, 1, DenoisingBranch,  [128]] # 1-Denoising path (P1/2 -> P2/4, from input -2=before layer 0) 
+  - [0, 1, DenoisingBranch, [128]]   # branch from image
   - [[-1, -2], 1, AdaptiveFeatureFusion, [128]] # 2-Fuse both branches at P2/4
   
   # ===== R-ELAN BLOCKS (standard, no attention) =====

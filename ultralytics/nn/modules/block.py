@@ -1389,6 +1389,7 @@ class StandardBranch(nn.Module):
 
 class DenoisingBranch(nn.Module):
     def __init__(self, c1, c2, e=0.5):
+        print("USING MY DENOISING BRANCH")
         """
         Denoising branch with depthwise separable convolutions and downsampling.
         Args:
