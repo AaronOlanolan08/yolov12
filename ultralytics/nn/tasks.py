@@ -1065,9 +1065,14 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             c2 = args[0]
             c1 = ch[f]
             args = [c1, c2, *args[1:]]
-        elif m in {StandardBranch, DenoisingBranch}:
-            # StandardBranch and DenoisingBranch need c1 and c2
-            c1 = ch[f]
+        elif m is StandardBranch:
+            # StandardBranch needs c1 and c2
+            c1 = ch[f] if f >= 0 else ch[f]
+            c2 = args[0]
+            args = [c1, c2, *args[1:]]
+        elif m is DenoisingBranch:
+            # DenoisingBranch always takes 3-channel input (raw image)
+            c1 = 3
             c2 = args[0]
             args = [c1, c2, *args[1:]]
         elif m is AdaptiveFeatureFusion:
