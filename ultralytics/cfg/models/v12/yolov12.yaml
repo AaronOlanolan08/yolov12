@@ -16,9 +16,9 @@ scales: # model compound scaling constants, i.e. 'model=yolov12n.yaml' will call
 # YOLO12-turbo backbone with Dual-Branch as Initial Downsampling
 backbone:
   # [from, repeats, module, args]
-  - [-1, 1, StandardBranch,     [64]] # 0-StandardBranch (includes Conv)
-  - [-1, 1, DenoisingBranch,    [128]] # 1-Denoising path from P1 to P2
-  - [[-1, -2], 1, AdaptiveFeatureFusion, [128]] # 2-Fuse both branches
+  - [-1, 1, StandardBranch,     [64, 128]] # 0-StandardBranch (P1/2 -> P2/4, parallel to input)
+  - [0, 1, DenoisingBranch,    [128]] # 1-Denoising path (takes input directly, P1/2 -> P2/4)
+  - [[-1, -2], 1, AdaptiveFeatureFusion, [128]] # 2-Fuse both branches at P2/4
   
   # ===== R-ELAN BLOCKS (standard, no attention) =====
   - [-1, 2, C3k2, [256, False, 0.25]] # 3-R-ELAN (P2)

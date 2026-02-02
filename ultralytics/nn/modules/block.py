@@ -1374,11 +1374,20 @@ class A2C2f(nn.Module):
 
 
 class StandardBranch(nn.Module):
-    def __init__(self, c1, c2=None):
+    def __init__(self, c1, c2, c3=None):
+        """
+        Standard branch replicating original YOLOv12 first two Conv layers with downsampling.
+        Args:
+            c1: input channels (e.g., 3 for RGB)
+            c2: intermediate channels (e.g., 64) - matches original Conv layer 0
+            c3: output channels (e.g., 128) - matches original Conv layer 1
+        """
         super().__init__()
-        c2 = c2 or c1
-        self.conv1 = Conv(c1, c2, 3, 1, 1)
-        self.conv2 = Conv(c2, c2, 3, 1, 1)
+        c3 = c3 or c2
+        # Replicate original: Conv [64, 3, 2] -> P1/2
+        self.conv1 = Conv(c1, c2, 3, 2)
+        # Replicate original: Conv [128, 3, 2, 1, 2] -> P2/4
+        self.conv2 = Conv(c2, c3, 3, 2, 1, 2)
 
     def forward(self, x):
         return self.conv2(self.conv1(x))
@@ -1387,48 +1396,52 @@ class StandardBranch(nn.Module):
 
 class DenoisingBranch(nn.Module):
     def __init__(self, c1, c2=None, n=1, shortcut=False, g=1, e=0.5):
+        """
+        Denoising branch with depthwise separable convolutions and downsampling.
+        Args:
+            c1: input channels (e.g., 3 for RGB)
+            c2: output channels (e.g., 128)
+            e: expansion ratio (default 0.5)
+        """
         super().__init__()
         c2 = c2 or c1
         self.c = int(c2 * e)
         
-        # If input and output channels match, use identity for first/last
-        self.use_identity = (c1 == c2)
-        self.cv1 = nn.Identity() if self.use_identity else Conv(c1, 2 * self.c, 1, 1)
-        # Use DWConv for depthwise, Conv for pointwise
-        self.dw_conv1 = DWConv(self.c, self.c, k=3, s=1)
+        # First conv with stride=2 for downsampling to P1/2
+        self.cv1 = Conv(c1, self.c, 3, 2, 1)
+        
+        # First DW-PW block with stride=2 for additional downsampling to P2/4
+        # DWConv already has: Conv2d → BatchNorm2d → SiLU activation
+        self.dw_conv1 = DWConv(self.c, self.c, k=3, s=2)
         self.pw_conv1 = Conv(self.c, self.c, 1, 1)
+        
+        # Second DW-PW block with stride=1
         self.dw_conv2 = DWConv(self.c, self.c, k=3, s=1)
         self.pw_conv2 = Conv(self.c, self.c, 1, 1)
         
-        # Activation function
-        self.act = nn.ReLU()
-        
-        # Bottleneck layers for feature refinement (optional, can be reduced or removed for minimal convs)
-        # Remove bottleneck layers for minimal convs
+        # No bottleneck layers for minimal convs
         self.m = nn.ModuleList()
         
-        # Use identity for last conv if possible
-        self.cv2 = nn.Identity() if self.use_identity else Conv(2 * self.c, c2, 1)
+        # Final projection to output channels
+        self.cv2 = Conv(self.c, c2, 1)
 
     def forward(self, x):
-        """Forward pass through denoising branch with residual skip."""
-        identity = x
-        # Extract features
-        y = list(self.cv1(x).chunk(2, 1))
-        # Depthwise + pointwise conv blocks
-        denoised = self.dw_conv1(y[0])
-        denoised = self.act(denoised)
-        denoised = self.pw_conv1(denoised)
-        denoised = self.dw_conv2(denoised)
-        denoised = self.act(denoised)
-        denoised = self.pw_conv2(denoised)
-        y[0] = denoised
-        # No bottleneck layers for minimal convs
-        out = self.cv2(torch.cat(y, 1))
-        # Residual skip connection if shape matches
-        if identity.shape == out.shape:
-            out = out + identity
-        return out
+        """Forward pass through denoising branch with downsampling (input → P1/2 → P2/4)."""
+        # Initial conv with downsampling to P1/2
+        x = self.cv1(x)  # 3 → 2*c channels, stride=2
+        
+        # First DW-PW block: downsamples to P2/4
+        # Note: DWConv already applies BatchNorm and activation internally
+        x = self.dw_conv1(x)  # DWConv: Conv→BN→SiLU (stride=2)
+        x = self.pw_conv1(x)  # Conv: Conv→BN→SiLU
+        
+        # Second DW-PW block: maintains P2/4
+        x = self.dw_conv2(x)  # DWConv: Conv→BN→SiLU (stride=1)
+        x = self.pw_conv2(x)  # Conv: Conv→BN→SiLU
+        
+        # Final projection to output channels
+        x = self.cv2(x)
+        return x
 
 
 class AdaptiveFeatureFusion(nn.Module):
