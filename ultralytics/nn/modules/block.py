@@ -1374,13 +1374,15 @@ class A2C2f(nn.Module):
 
 
 class StandardBranch(nn.Module):
-    def __init__(self, c1, c2, c3, k, s):
+    def __init__(self, c1, c2, k=3, s=2):
         super().__init__()
 
-        self.conv1 = Conv(c1, c2, k, s)
-        self.conv2 = Conv(c2, c3, 3, 2)
+        mid = c2 // 2   # create internal channel yourself
 
-        self.c2 = c3 
+        self.conv1 = Conv(c1, mid, k, s)
+        self.conv2 = Conv(mid, c2, 3, 2)
+
+        self.c2 = c2
 
     def forward(self, x):
         return self.conv2(self.conv1(x))
@@ -1389,7 +1391,7 @@ class StandardBranch(nn.Module):
 
 class DenoisingBranch(nn.Module):
     def __init__(self, c1, c2, e=0.5):
-        print("USING MY DENOISING BRANCH")
+        print("c1 received:", c1)
         """
         Denoising branch with depthwise separable convolutions and downsampling.
         Args:
