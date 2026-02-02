@@ -1384,7 +1384,7 @@ class StandardBranch(nn.Module):
         """
         super().__init__()
         c3 = c3 or c2
-        # Replicate original: Conv [64, 3, 2] -> P1/2
+        # Replicate original: Conv [64, 128, 3, 2] -> P1/2
         self.conv1 = Conv(c1, c2, 3, 2)
         # Replicate original: Conv [128, 3, 2, 1, 2] -> P2/4
         self.conv2 = Conv(c2, c3, 3, 2, 1, 2)
