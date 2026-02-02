@@ -1374,10 +1374,13 @@ class A2C2f(nn.Module):
 
 
 class StandardBranch(nn.Module):
-    def __init__(self, c1, c2, k=3, s=2):
+    def __init__(self, c1, c2, *args):
         super().__init__()
 
-        mid = c2 // 2   # create internal channel yourself
+        k = args[0] if len(args) > 0 else 3
+        s = args[1] if len(args) > 1 else 2
+
+        mid = c2 // 2
 
         self.conv1 = Conv(c1, mid, k, s)
         self.conv2 = Conv(mid, c2, 3, 2)

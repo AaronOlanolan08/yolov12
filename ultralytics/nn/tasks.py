@@ -1072,7 +1072,7 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             args = [c1, c2, *args[1:]]
         elif m is DenoisingBranch:
             # DenoisingBranch always takes 3-channel input (raw image)
-            c1 = 3
+            c1 = ch[f]
             c2 = args[0]
             args = [c1, c2, *args[1:]]
         elif m is AdaptiveFeatureFusion:
