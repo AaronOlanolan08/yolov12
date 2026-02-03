@@ -1420,7 +1420,6 @@ class DenoisingBranch(nn.Module):
 
     def forward(self, x):
         """Forward pass through denoising branch with downsampling (input → P1/2 → P2/4)."""
-        print(x.shape)
         # First DW-PW block: downsamples to P2/4
         # Note: DWConv already applies BatchNorm and activation internally
         x = self.dw_conv1(x)  # DWConv: Conv→BN→SiLU (stride=2)
