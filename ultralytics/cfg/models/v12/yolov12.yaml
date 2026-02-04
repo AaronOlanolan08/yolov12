@@ -19,7 +19,7 @@ backbone:
   - [-1, 1, Conv,  [64, 3, 2]]
   - [-1, 1, StandardBranch, [128, 3, 2]]
   - [-2, 1, DenoisingBranch, [128, 3, 2]]
-  - [[-1, -2], 1, Concat, [1]]
+  - [[-1, -2], 1, AdaptiveFeatureFusion, [128]]
   
   # ===== R-ELAN BLOCKS (standard, no attention) =====
   - [-1, 2, C3k2, [256, False, 0.25]] # 3-R-ELAN (P2)

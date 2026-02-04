@@ -1068,21 +1068,16 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             c2 = args[0]
             c1 = ch[f]
             args = [c1, c2, *args[1:]]
-        elif m in {StandardBranch, DenoisingBranch}:
-
-            if isinstance(f, int):
-                c1 = ch[f]
-            else:
-                c1 = sum(ch[x] for x in f)  # future-proof for multi-input
-
+        elif m is StandardBranch:
+            # StandardBranch needs c1 and c2
+            c1 = ch[f] if f >= 0 else ch[f]
             c2 = args[0]
-
-            # APPLY WIDTH SCALING (VERY IMPORTANT)
-            if c2 != nc:
-                c2 = make_divisible(min(c2, max_channels) * width, 8)
-
             args = [c1, c2, *args[1:]]
-
+        elif m is DenoisingBranch:
+            # DenoisingBranch always takes 3-channel input (raw image)
+            c1 = ch[f]
+            c2 = args[0]
+            args = [c1, c2, *args[1:]]
         elif m is AdaptiveFeatureFusion:
             c2 = args[0]
             c1 = sum(ch[x] for x in f)
