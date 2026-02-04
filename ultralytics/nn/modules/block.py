@@ -1516,5 +1516,6 @@ class AdaptiveFeatureFusion(nn.Module):
         if self.debug:
             print(f"Output shape: {out.shape}")
             print("=================================\n")
-
+        print(f"Fused shape: {fused.shape}")
+        print(f"Output shape: {out.shape}")
         return out

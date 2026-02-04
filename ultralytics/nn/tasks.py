@@ -1078,7 +1078,7 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             c2 = args[0]
             args = [c1, c2, *args[1:]]
         elif m is AdaptiveFeatureFusion:
-            c2 = make_divisible(args[0] * width, 8)
+            c2 = ch[f[0]]  # channel of previous layer
             args = [c2]
         elif m is CBFuse:
             c2 = ch[f[-1]]
