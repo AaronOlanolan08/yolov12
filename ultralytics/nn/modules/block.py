@@ -1379,11 +1379,12 @@ class StandardBranch(nn.Module):
 
         k = args[0] if len(args) > 0 else 3
         s = args[1] if len(args) > 1 else 2
-        p = args[2]
-        g = args[3]
+        p = args[2] if len(args) > 2 else 1
+        g = args[3] if len(args) > 3 else 1
+
 
         self.conv1 = Conv(c1, c2, k, s, p, g)
-        self.conv2 = Conv(c2, c2, 3, 2, p, g)
+        self.conv2 = Conv(c2, c2, 3, 1, p, g)
 
     def forward(self, x):
         return self.conv2(self.conv1(x))
@@ -1401,7 +1402,7 @@ class DenoisingBranch(nn.Module):
         self.dw_conv1 = DWConv(c1, self.c, k, s)
         self.pw_conv1 = Conv(self.c, self.c, 1, 1)
 
-        self.dw_conv2 = DWConv(self.c, c2, k, s)
+        self.dw_conv2 = DWConv(self.c, c2, k, 1)
         self.pw_conv2 = Conv(c2, c2, 1, 1)
         
         # No bottleneck layers for minimal convs
