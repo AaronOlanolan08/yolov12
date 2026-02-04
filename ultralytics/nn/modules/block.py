@@ -1464,23 +1464,8 @@ class AdaptiveFeatureFusion(nn.Module):
     def forward(self, x):
         s, d = x
 
-        if self.debug:
-            print("\n=== AdaptiveFeatureFusion Debug ===")
-            print(f"Standard shape : {s.shape}")
-            print(f"Denoising shape: {d.shape}")
-            print(f"Weight shape   : {self.weight_standard.shape}")
-
-        # Ensure spatial sizes match
-        if s.shape[2:] != d.shape[2:]:
-            raise RuntimeError(
-                f"Spatial mismatch: standard {s.shape[2:]} vs denoising {d.shape[2:]}"
-            )
-
         # Align channels if needed
         if s.shape[1] != d.shape[1]:
-            if self.debug:
-                print(f"Channel mismatch detected: {s.shape[1]} vs {d.shape[1]}")
-                print("Creating alignment conv...")
 
             if self.align_conv is None or self.align_conv.conv.in_channels != d.shape[1]:
                 self.align_conv = Conv(
@@ -1489,33 +1474,11 @@ class AdaptiveFeatureFusion(nn.Module):
 
             d = self.align_conv(d)
 
-            if self.debug:
-                print(f"After alignment denoising shape: {d.shape}")
-
-        # Final safety check before fusion
-        if s.shape != d.shape:
-            raise RuntimeError(
-                f"Fusion tensors still mismatched: {s.shape} vs {d.shape}"
-            )
-
-        if self.weight_standard.shape[1] != s.shape[1]:
-            raise RuntimeError(
-                f"Weight channels ({self.weight_standard.shape[1]}) "
-                f"do not match tensor channels ({s.shape[1]}). "
-                "Check initialization of fusion block."
-            )
-
+        print(f"weight times s: {self.weight_standard * s}")
+        print(f"weight times d: {self.weight_denoising * d}")
         fused = self.weight_standard * s + self.weight_denoising * d
-
-        if self.debug:
-            print(f"Fused shape: {fused.shape}")
 
         fused = self.conv_align(fused)
         out = fused * self.ca(fused)
 
-        if self.debug:
-            print(f"Output shape: {out.shape}")
-            print("=================================\n")
-        print(f"Fused shape: {fused.shape}")
-        print(f"Output shape: {out.shape}")
         return out
