@@ -1081,6 +1081,7 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
         elif m is AdaptiveFeatureFusion:
             # AdaptiveFeatureFusion fuses two channels from previous layers
             c2 = args[0]
+            c1 = sum(ch[x] for x in f)
         elif m is CBFuse:
             c2 = ch[f[-1]]
         else:
