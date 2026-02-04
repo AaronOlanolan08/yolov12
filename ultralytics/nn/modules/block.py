@@ -1393,7 +1393,6 @@ class StandardBranch(nn.Module):
 
 class DenoisingBranch(nn.Module):
     def __init__(self, c1, c2, k, s):
-        print("c1 received:", c1)
 
         super().__init__()
         self.c = int(c2 * 0.5)
