@@ -1439,16 +1439,17 @@ class DenoisingBranch(nn.Module):
 
 
 class AdaptiveFeatureFusion(nn.Module):
-    def __init__(self, c):
+    def __init__(self, c, debug=False):
         super().__init__()
         assert c % 32 == 0, "Fusion channels must be multiple of 32"
 
-        self.conv_align = Conv(c, c, 1, 1)  # channel alignment
+        self.debug = debug
+
+        self.conv_align = Conv(c, c, 1, 1)
 
         self.weight_standard = nn.Parameter(torch.ones(1, c, 1, 1) * 0.5)
         self.weight_denoising = nn.Parameter(torch.ones(1, c, 1, 1) * 0.5)
 
-        # Channel attention without BatchNorm to avoid issues with 1x1 spatial dimensions
         hidden_ch = max(c // 16, 8)
         self.ca = nn.Sequential(
             nn.AdaptiveAvgPool2d(1),
@@ -1458,14 +1459,62 @@ class AdaptiveFeatureFusion(nn.Module):
             nn.Sigmoid()
         )
 
+        self.align_conv = None  # avoid recreating every forward
+
     def forward(self, x):
         s, d = x
-        # Always recreate align_conv if channels mismatch (robust to wrapper types)
+
+        if self.debug:
+            print("\n=== AdaptiveFeatureFusion Debug ===")
+            print(f"Standard shape : {s.shape}")
+            print(f"Denoising shape: {d.shape}")
+            print(f"Weight shape   : {self.weight_standard.shape}")
+
+        # Ensure spatial sizes match
+        if s.shape[2:] != d.shape[2:]:
+            raise RuntimeError(
+                f"Spatial mismatch: standard {s.shape[2:]} vs denoising {d.shape[2:]}"
+            )
+
+        # Align channels if needed
         if s.shape[1] != d.shape[1]:
-            self.align_conv = Conv(d.shape[1], s.shape[1], k=1, s=1, p=0, act=False).to(d.device, d.dtype)
+            if self.debug:
+                print(f"Channel mismatch detected: {s.shape[1]} vs {d.shape[1]}")
+                print("Creating alignment conv...")
+
+            if self.align_conv is None or self.align_conv.conv.in_channels != d.shape[1]:
+                self.align_conv = Conv(
+                    d.shape[1], s.shape[1], k=1, s=1, p=0, act=False
+                ).to(d.device, d.dtype)
+
             d = self.align_conv(d)
+
+            if self.debug:
+                print(f"After alignment denoising shape: {d.shape}")
+
+        # Final safety check before fusion
+        if s.shape != d.shape:
+            raise RuntimeError(
+                f"Fusion tensors still mismatched: {s.shape} vs {d.shape}"
+            )
+
+        if self.weight_standard.shape[1] != s.shape[1]:
+            raise RuntimeError(
+                f"Weight channels ({self.weight_standard.shape[1]}) "
+                f"do not match tensor channels ({s.shape[1]}). "
+                "Check initialization of fusion block."
+            )
+
         fused = self.weight_standard * s + self.weight_denoising * d
-        fused = self.conv_align(fused)  # guarantees correct channel alignment
-        return fused * self.ca(fused)
 
+        if self.debug:
+            print(f"Fused shape: {fused.shape}")
 
+        fused = self.conv_align(fused)
+        out = fused * self.ca(fused)
+
+        if self.debug:
+            print(f"Output shape: {out.shape}")
+            print("=================================\n")
+
+        return out
