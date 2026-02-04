@@ -1387,7 +1387,13 @@ class StandardBranch(nn.Module):
         self.conv2 = Conv(c2, c2, 3, 1, p, g)
 
     def forward(self, x):
-        return self.conv2(self.conv1(x))
+        x = self.conv1(x)
+        print("Standard after conv1:", x.shape)
+
+        x = self.conv2(x)
+        print("Standard after conv2:", x.shape)
+        return x
+
 
 
 
@@ -1411,19 +1417,25 @@ class DenoisingBranch(nn.Module):
         self.cv2 = Conv(c2, c2, 1)
 
     def forward(self, x):
-        """Forward pass through denoising branch with downsampling (input → P1/2 → P2/4)."""
-        # First DW-PW block: downsamples to P2/4
-        # Note: DWConv already applies BatchNorm and activation internally
-        x = self.dw_conv1(x)  # DWConv: Conv→BN→SiLU (stride=2)
-        x = self.pw_conv1(x)  # Conv: Conv→BN→SiLU
-        
-        # Second DW-PW block: maintains P2/4
-        x = self.dw_conv2(x)  # DWConv: Conv→BN→SiLU (stride=1)
-        x = self.pw_conv2(x)  # Conv: Conv→BN→SiLU
-        
-        # Final projection to output channels
+        print("Denoise input:", x.shape)
+
+        x = self.dw_conv1(x)
+        print("after dw1:", x.shape)
+
+        x = self.pw_conv1(x)
+        print("after pw1:", x.shape)
+
+        x = self.dw_conv2(x)
+        print("after dw2:", x.shape)
+
+        x = self.pw_conv2(x)
+        print("after pw2:", x.shape)
+
         x = self.cv2(x)
+        print("after cv2:", x.shape)
+
         return x
+
 
 
 class AdaptiveFeatureFusion(nn.Module):
